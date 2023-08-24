@@ -1,0 +1,30 @@
+version: '3'
+
+services:
+  db:
+    image: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      POSTGRES_PASSWORD: postgres
+    expose:
+      - "5432"
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: mpao-ratings/web:latest
+    # command: gunicorn --bind :8000 --workers 4 --worker-class uvicorn.workers.UvicornWorker mpao-ratings.asgi:application
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/home/user/app
+      - static:/var/www/html
+    env_file:
+      - local.env
+    ports:
+      - 8000:8000
+    depends_on:
+      - db
+volumes:
+  postgres_data:
+  static:
