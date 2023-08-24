@@ -28,6 +28,6 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-
+        migrations.RunPython(add_default_point_rating_systems),
         migrations.RunPython(add_default_star_rating_systems),
     ]
