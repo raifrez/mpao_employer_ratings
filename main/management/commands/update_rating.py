@@ -1,5 +1,6 @@
 from datetime import datetime
-from main.models import Rating, PointSystem, StarSystem
+from main.models import Rating, PointSystem, StarSystem, Payment
+from django.core.management.base import BaseCommand, CommandError
 
 class Command(BaseCommand):
     help = 'Update employer ratings manually or on a monthly basis'
@@ -11,7 +12,7 @@ class Command(BaseCommand):
         #TODO: Update asychronously in chunks using celery for better performance
 
         for rating in ratings:
-            missed_payments = Payments.objects.filter(
+            missed_payments = Payment.objects.filter(
                     employer=rating.employer, 
                     paid_date=None, 
                     due_date__lt=today,
@@ -25,17 +26,17 @@ class Command(BaseCommand):
                 # Update points
                 point_update = PointSystem.objects.filter(
                         point_type='unpaid',
-                        threshold_upper__gte=overdue,
-                        threshold_lower__lte=overdue
-                    ).first()
+                        threshold_upper__gte=overdue.days,
+                        threshold_lower__lte=overdue.days
+                    )
+                if point_update:
+                    rating.points += point_update.value
 
-                rating.points += point_update.value
-
-                max_penalty = PointSystem.objects.order_by('value').first()
-                if not max_penalty:
-                    self.stderr.write("PointSystem not found. Skipping suspension.")
-                elif point_update.value == max_penalty:
-                    rating.is_suspended = True
+                    max_penalty = PointSystem.objects.order_by('value').first()
+                    if not max_penalty:
+                        self.stderr.write("PointSystem not found. Skipping suspension.")
+                    elif point_update.value == max_penalty:
+                        rating.is_suspended = True
 
             # Reset stars
             missed_payments_count = missed_payments.count()
@@ -54,8 +55,6 @@ class Command(BaseCommand):
                 rating.star_rating = star_update
 
             updated = rating.save()
-
+            
             if updated:
                 self.stdout.write(self.style.SUCCESS(f'Rating for {rating.employer.name} updated successfully!'))
-            else:
-                self.stderr.write("Rating for {rating.employer.name} failed.")

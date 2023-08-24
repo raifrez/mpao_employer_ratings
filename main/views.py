@@ -8,10 +8,30 @@ from .serializers import *
 from django.utils import timezone
 from datetime import datetime
 
+@api_view(['GET'])
+def top_five(request):
+    limit = request.query_params.get('limit', 5)
+    queryset = Rating.objects.all()
+    queryset = queryset.select_related('employer', 'star_rating')
+    queryset = queryset.order_by('-points', '-star_rating__value')[:limit]
+    serializer = RatingDetailSerializer(queryset, many=True)
+
+    return Response(serializer.data)
+
+@api_view(['GET'])
+def bottom_five(request):
+    limit = request.query_params.get('limit', 5)
+    queryset = Rating.objects.all()
+    queryset = queryset.select_related('employer', 'star_rating')
+    queryset = queryset.order_by('points', 'star_rating__value')[:limit]
+    serializer = RatingDetailSerializer(queryset, many=True)
+
+    return Response(serializer.data)
+
 class EmployerListView(generics.ListAPIView):
     serializer_class = EmployerSerializer
     filter_backends = [filters.OrderingFilter]
-    ordering_fields = ['id', 'joined_date', 'name']
+    ordering_fields = ['id', 'name']
     ordering = ['id']
 
     def get_queryset(self):
@@ -32,7 +52,7 @@ class PaymentListView(generics.ListAPIView):
     def get_queryset(self):
         employer = self.request.query_params.get('employer')
         month = self.request.query_params.get('month')
-        year = self.request.querty_params.get('year')
+        year = self.request.query_params.get('year')
         due = self.request.query_params.get('due')
 
         queryset = super().get_queryset()
@@ -48,7 +68,7 @@ class PaymentListView(generics.ListAPIView):
         if due == 'true' or due == 1:
             queryset = queryset.filter(paid_date=None)
 
-        return queryset[:500]
+        return queryset
 
 class PaymentDetailView(generics.RetrieveUpdateAPIView):
     queryset = Payment.objects.all()
@@ -83,4 +103,4 @@ class RatingListView(generics.ListAPIView):
         if stars:
             queryset = queryset.filter(star_rating__value=stars)
 
-        return queryset[:500]
+        return queryset
