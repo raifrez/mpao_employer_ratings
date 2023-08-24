@@ -2,16 +2,17 @@ from django.db import models
 
 # Create your models here.
 
-# class RatingSystem(models.Model):
-#     RATING_TYPES = [
-#         ('star', 'Star'),
-#         ('point', 'Point')
-#     ]
-#     rating_type = models.CharField(max_length=4, choices=RATING_TYPES)
-#     label = models.CharField(max_length=15, null=True)
-#     value = models.IntegerField()
-#     threshold_upper = models.IntegerField()
-#     threshold_lower = models.IntegerField()
+class PointSystem(models.Model):
+    value = models.IntegerField()
+    threshold_upper = models.IntegerField(null=True)
+    threshold_lower = models.IntegerField()
+
+class StarSystem(models.Model):
+    label = models.CharField(max_length=15, null=True)
+    value = models.IntegerField()
+    threshold_upper = models.IntegerField(null=True)
+    threshold_lower = models.IntegerField()
+
 
 
 class Employer(models.Model):
@@ -35,6 +36,7 @@ class Payment(models.Model):
 class Rating(models.Model):
     employer = models.ForeignKey(Employer, on_delete=models.CASCADE)
     points = models.IntegerField(default=0)
+    star_rating = models.ForeignKey(StarSystem, on_delete=models.PROTECT)
     last_paid_date = models.DateField(null=True)
     payment_streak = models.IntegerField(default=0)
     is_suspended = models.BooleanField(default=False)
@@ -42,7 +44,7 @@ class Rating(models.Model):
 
 class RatingHistory(models.Model):
     rating = models.ForeignKey(Rating, on_delete=models.CASCADE)
-    stars = models.IntegerField()
+    stars_change = models.IntegerField()
     streak_change = models.IntegerField()
     point_change = models.IntegerField()
     created_at = models.DateTimeField(auto_now_add=True)
